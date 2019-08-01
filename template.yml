@@ -43,7 +43,6 @@ Resources:
       Policies:
        - S3CrudPolicy:
             BucketName: !Ref S3BucketParameter
-
       Environment:
         Variables:
           S3_BUCKET: !Ref S3BucketParameter
@@ -54,7 +53,7 @@ Resources:
             RestApiId: !Ref SqurlApi
             Method: get
             Path: /url
-        Get:
+        Post:
           Type: Api
           Properties:
             RestApiId: !Ref SqurlApi
