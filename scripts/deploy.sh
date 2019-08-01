@@ -31,6 +31,4 @@ ship-it() {
 case $CODEBUILD_INITIATOR in
     codepipeline/squrl) ship-it v1 www.squrl.com distribution
         ;;
-    *) ship-it v1 www.squrl.com distribution
-        ;;
 esac
