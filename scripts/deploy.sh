@@ -20,7 +20,7 @@ ship-it() {
         --template-file sam-packaged.yml \
         --stack-name squrl-$api_version
 
-    echo aws s3 sync www s3://$bucket/www --delete
+    aws s3 sync www s3://$bucket/www --delete
 
     echo aws cloudfront \
         create-invalidation \

@@ -18,6 +18,16 @@ Parameters:
     Default: www.squrl.com
 
 Resources:
+  SqurlS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketParameter
+      VersioningConfiguration:
+        Status: Enabled
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+
   SqurlApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -63,3 +73,7 @@ Outputs:
   SqurlApiLambdaIamRole:
     Description: Squrl Lambda Execution Role Arn
     Value: !GetAtt SqurlApiLambdaRole.Arn
+
+  SqurlS3Bucket:
+    Description: Squrl S3 Bucket Url
+    Value: !GetAtt SqurlS3Bucket.DomainName
