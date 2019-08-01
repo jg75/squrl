@@ -7,15 +7,15 @@ Globals:
     Timeout: 3
 
 Parameters:
-  S3BucketParameter:
-    Description: S3 Bucket
-    Type: String
-    Default: www.squrl.com
-
   ApiVersionParameter:
     Description: The Api deployment stage and lambda alias
     Type: String
     Default: v1
+
+  S3BucketParameter:
+    Description: S3 Bucket
+    Type: String
+    Default: www.squrl.com
 
 Resources:
   SqurlApi:
@@ -29,7 +29,10 @@ Resources:
       AutoPublishAlias: !Ref ApiVersionParameter
       Handler: lambda_function.handler
       Runtime: python3.7
-      CodeUri: ../squrl
+      CodeUri: squrl
+      Policies:
+       - S3CrudPolicy:
+            BucketName: !Ref S3BucketParameter
 
       Environment:
         Variables:
@@ -40,13 +43,13 @@ Resources:
           Properties:
             RestApiId: !Ref SqurlApi
             Method: get
-            Path: /{url}
+            Path: /url
         Get:
           Type: Api
           Properties:
             RestApiId: !Ref SqurlApi
             Method: post
-            Path: /{url}
+            Path: /url
 
 Outputs:
   SqurlApi:
