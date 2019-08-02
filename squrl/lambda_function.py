@@ -10,22 +10,30 @@ import botocore.exceptions
 
 class Squrl:
     """Squrl makes URL's shorter."""
+    key_length = 7
+    key_retention = 7
+
+    @classmethod
+    def get_key(cls, url):
+        """Get a short key for the url prefixed with 'u/'."""
+        digest = hashlib.md5(url.encode()).hexdigest()
+        return f"u/{digest[:cls.key_length]}"
+
+    @classmethod
+    def get_expiration(cls):
+        """Get a key expiration datetime object."""
+        retention = datetime.timedelta(days=cls.key_retention)
+        return datetime.datetime.now() + retention
 
     def __init__(self, client, bucket):
         """Override init."""
         self.client = client
         self.bucket = bucket
-        self.registry = {"GET": self.get, "POST": self.post}
-
-    def get(self, url, **kwargs):
-        """Return a key if one exists."""
-        key = self.get_key(url)
-
-        return key if self.key_exists(key) else ""
-
-    def post(self, url, **kwargs):
-        """Create or update key."""
-        return self.create_key(url, **kwargs)
+        self.registry = {
+            "GET": self.get,
+            "POST": self.create,
+            "PUT": self.create
+        }
 
     def key_exists(self, key):
         """Return True if the specified key exists."""
@@ -39,22 +47,21 @@ class Squrl:
 
         return True
 
-    @staticmethod
-    def get_key(url):
-        """Get a short key for the url prefixed with 'u/' plus 7 characters."""
-        digest = hashlib.md5(url.encode()).hexdigest()
-        return f"u/{digest[:7]}"
+    def get(self, url, **kwargs):
+        """Return a key if one exists."""
+        key = self.get_key(url)
 
-    def create_key(self, url, days=7):
+        return key if self.key_exists(key) else ""
+
+    def create(self, url, **kwargs):
         """Create the short key object with an expiration and redirect."""
-        expires = datetime.datetime.now() + datetime.timedelta(days=days)
         key = self.get_key(url)
 
         self.client.put_object(
             Bucket=self.bucket,
             Key=key,
             WebsiteRedirectLocation=url,
-            Expires=expires,
+            Expires=self.get_expiration(),
             ContentType="text/plain"
         )
 

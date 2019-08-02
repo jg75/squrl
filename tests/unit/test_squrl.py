@@ -1,3 +1,4 @@
+import datetime
 import json
 
 import boto3
@@ -14,10 +15,20 @@ def stubber(request):
 
     request.addfinalizer(stub.assert_no_pending_responses)
 
-    return {
-        "client": client,
-        "stub": stub
-    }
+    return stub
+
+
+def test_get_key():
+    key = Squrl.get_key("test-url")
+
+    assert len(key) == Squrl.key_length + 2
+    assert key.startswith("u/")
+
+
+def test_get_expiration():
+    expiration = Squrl.get_expiration()
+
+    assert expiration > datetime.datetime.now()
 
 
 def test_key_exists(stubber):
@@ -26,12 +37,12 @@ def test_key_exists(stubber):
         "Key": ANY
     }
 
-    stubber["stub"].add_response(
+    stubber.add_response(
         "head_object", {}, expected_params=expected_params
     )
-    stubber["stub"].activate()
+    stubber.activate()
 
-    assert Squrl(stubber["client"], "test-bucket").key_exists("test-key")
+    assert Squrl(stubber.client, "test-bucket").key_exists("test-key")
 
 
 def test_key_does_not_exist(stubber):
@@ -40,40 +51,14 @@ def test_key_does_not_exist(stubber):
         "Key": ANY
     }
 
-    stubber["stub"].add_client_error(
+    stubber.add_client_error(
         "head_object",
         expected_params=expected_params,
         service_error_code="404"
     )
-    stubber["stub"].activate()
+    stubber.activate()
 
-    assert not Squrl(stubber["client"], "test-bucket").key_exists("test-key")
-
-
-def test_get_key():
-    key = Squrl.get_key("test-url")
-
-    assert len(key) == 9
-    assert key.startswith("u/")
-
-
-def test_create_key(stubber):
-    url = "test-url"
-    content_type = "text/plain"
-    expected_params = {
-        "Bucket": ANY,
-        "Key": ANY,
-        "WebsiteRedirectLocation": url,
-        "Expires": ANY,
-        "ContentType": content_type
-    }
-
-    stubber["stub"].add_response(
-        "put_object", {}, expected_params=expected_params
-    )
-    stubber["stub"].activate()
-
-    Squrl(stubber["client"], "test-bucket").create_key("test-url")
+    assert not Squrl(stubber.client, "test-bucket").key_exists("test-key")
 
 
 def test_get_response_ok():
@@ -110,12 +95,12 @@ def test_get_method_key_exists(stubber):
         "Key": ANY
     }
 
-    stubber["stub"].add_response(
+    stubber.add_response(
         "head_object", {}, expected_params=expected_params
     )
-    stubber["stub"].activate()
+    stubber.activate()
 
-    squrl = Squrl(stubber["stub"].client, "test-bucket")
+    squrl = Squrl(stubber.client, "test-bucket")
 
     assert squrl.registry["GET"]("test-url")
 
@@ -126,32 +111,59 @@ def test_get_method_key_does_not_exist(stubber):
         "Key": ANY
     }
 
-    stubber["stub"].add_client_error(
+    stubber.add_client_error(
         "head_object",
         expected_params=expected_params,
         service_error_code="404"
     )
-    stubber["stub"].activate()
+    stubber.activate()
 
-    squrl = Squrl(stubber["stub"].client, "test-bucket")
+    squrl = Squrl(stubber.client, "test-bucket")
 
     assert not squrl.registry["GET"]("test-url")
 
 
 def test_post_method(stubber):
+    method = "POST"
+    bucket = "test-bucket"
+    url = "test-url"
+    key = Squrl.get_key(url)
     expected_params = {
-        "Bucket": ANY,
-        "Key": ANY,
-        "WebsiteRedirectLocation": ANY,
+        "Bucket": bucket,
+        "Key": key,
+        "WebsiteRedirectLocation": url,
         "Expires": ANY,
         "ContentType": ANY
     }
 
-    stubber["stub"].add_response(
+    stubber.add_response(
         "put_object", {}, expected_params=expected_params
     )
-    stubber["stub"].activate()
+    stubber.activate()
 
-    squrl = Squrl(stubber["stub"].client, "test-bucket")
+    squrl = Squrl(stubber.client, bucket)
 
-    assert squrl.registry["POST"]("test-url")
+    assert squrl.registry[method](url)
+
+
+def test_put_method(stubber):
+    method = "PUT"
+    bucket = "test-bucket"
+    url = "test-url"
+    key = Squrl.get_key(url)
+    expected_params = {
+        "Bucket": bucket,
+        "Key": key,
+        "WebsiteRedirectLocation": url,
+        "Expires": ANY,
+        "ContentType": ANY
+    }
+
+    stubber.add_response(
+        "put_object", {}, expected_params=expected_params
+    )
+    stubber.activate()
+
+    squrl = Squrl(stubber.client, bucket)
+
+    assert squrl.registry[method](url)

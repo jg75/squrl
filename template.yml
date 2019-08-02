@@ -47,17 +47,23 @@ Resources:
         Variables:
           S3_BUCKET: !Ref S3BucketParameter
       Events:
-        Get:
+        GetUrl:
           Type: Api
           Properties:
             RestApiId: !Ref SqurlApi
             Method: get
             Path: /url
-        Post:
+        PostUrl:
           Type: Api
           Properties:
             RestApiId: !Ref SqurlApi
             Method: post
+            Path: /url
+        PutUrl:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SqurlApi
+            Method: put
             Path: /url
 
 Outputs:
