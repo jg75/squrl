@@ -1,11 +1,12 @@
 import datetime
 import json
+from unittest.mock import patch
 
 import boto3
 from botocore.stub import Stubber, ANY
 from pytest import fixture
 
-from squrl import Squrl
+from squrl import Squrl, handler
 
 
 @fixture(scope="function")
@@ -18,47 +19,67 @@ def stubber(request):
     return stub
 
 
-def test_get_key():
+@fixture(scope="session")
+def parameters():
+    bucket = "test-bucket"
+    url = "test-url"
+    key = Squrl.get_key(url)
+
+    return {
+        "bucket": bucket,
+        "url": url,
+        "key": key,
+        "head_object": {
+            "Bucket": bucket,
+            "Key": key
+        },
+        "put_object": {
+            "Bucket": bucket,
+            "Key": key,
+            "WebsiteRedirectLocation": url,
+            "Expires": ANY,
+            "ContentType": ANY
+        }
+    }
+
+
+def test_get_key(parameters):
     key = Squrl.get_key("test-url")
 
     assert len(key) == Squrl.key_length + 2
     assert key.startswith("u/")
 
 
-def test_get_expiration():
+def test_get_expiration(parameters):
     expiration = Squrl.get_expiration()
 
     assert expiration > datetime.datetime.now()
 
 
-def test_key_exists(stubber):
-    expected_params = {
-        "Bucket": ANY,
-        "Key": ANY
-    }
+def test_key_exists(stubber, parameters):
+    bucket = parameters["bucket"]
+    key = parameters["key"]
 
     stubber.add_response(
-        "head_object", {}, expected_params=expected_params
+        "head_object", {}, expected_params=parameters["head_object"]
     )
     stubber.activate()
 
-    assert Squrl(stubber.client, "test-bucket").key_exists("test-key")
+    assert Squrl(bucket, client=stubber.client).key_exists(key)
 
 
-def test_key_does_not_exist(stubber):
-    expected_params = {
-        "Bucket": ANY,
-        "Key": ANY
-    }
+def test_key_does_not_exist(stubber, parameters):
+    bucket = parameters["bucket"]
+    key = parameters["key"]
 
     stubber.add_client_error(
         "head_object",
-        expected_params=expected_params,
+        expected_params=parameters["head_object"],
         service_error_code="404"
     )
     stubber.activate()
 
-    assert not Squrl(stubber.client, "test-bucket").key_exists("test-key")
+    assert not Squrl(bucket, client=stubber.client).key_exists(key)
 
 
 def test_get_response_ok():
@@ -89,81 +110,127 @@ def test_get_response_error():
     assert expected_response == actual_response
 
 
-def test_get_method_key_exists(stubber):
-    expected_params = {
-        "Bucket": ANY,
-        "Key": ANY
-    }
+def test_get_method_key_exists(stubber, parameters):
+    method = "GET"
+    bucket = parameters["bucket"]
+    url = parameters["url"]
 
     stubber.add_response(
-        "head_object", {}, expected_params=expected_params
+        "head_object", {}, expected_params=parameters["head_object"]
     )
     stubber.activate()
 
-    squrl = Squrl(stubber.client, "test-bucket")
-
-    assert squrl.registry["GET"]("test-url")
+    assert Squrl(bucket, client=stubber.client).registry[method](url)
 
 
-def test_get_method_key_does_not_exist(stubber):
-    expected_params = {
-        "Bucket": ANY,
-        "Key": ANY
-    }
+def test_get_method_key_does_not_exist(stubber, parameters):
+    method = "GET"
+    bucket = parameters["bucket"]
+    url = parameters["url"]
 
     stubber.add_client_error(
         "head_object",
-        expected_params=expected_params,
+        expected_params=parameters["head_object"],
         service_error_code="404"
     )
     stubber.activate()
 
-    squrl = Squrl(stubber.client, "test-bucket")
-
-    assert not squrl.registry["GET"]("test-url")
+    assert not Squrl(bucket, client=stubber.client).registry[method](url)
 
 
-def test_post_method(stubber):
+def test_post_method(stubber, parameters):
     method = "POST"
-    bucket = "test-bucket"
-    url = "test-url"
-    key = Squrl.get_key(url)
-    expected_params = {
-        "Bucket": bucket,
-        "Key": key,
-        "WebsiteRedirectLocation": url,
-        "Expires": ANY,
-        "ContentType": ANY
-    }
+    bucket = parameters["bucket"]
+    url = parameters["url"]
 
     stubber.add_response(
-        "put_object", {}, expected_params=expected_params
+        "put_object", {}, expected_params=parameters["put_object"]
     )
     stubber.activate()
 
-    squrl = Squrl(stubber.client, bucket)
-
-    assert squrl.registry[method](url)
+    assert Squrl(bucket, client=stubber.client).registry[method](url)
 
 
-def test_put_method(stubber):
+def test_put_method(stubber, parameters):
     method = "PUT"
-    bucket = "test-bucket"
-    url = "test-url"
-    key = Squrl.get_key(url)
-    expected_params = {
-        "Bucket": bucket,
-        "Key": key,
-        "WebsiteRedirectLocation": url,
-        "Expires": ANY,
-        "ContentType": ANY
-    }
+    bucket = parameters["bucket"]
+    url = parameters["url"]
 
     stubber.add_response(
-        "put_object", {}, expected_params=expected_params
+        "put_object", {}, expected_params=parameters["put_object"]
     )
     stubber.activate()
 
-    squrl = Squrl(stubber.client, bucket)
+    assert Squrl(bucket, client=stubber.client).registry[method](url)
 
-    assert squrl.registry[method](url)
+
+@fixture(scope="function")
+def patch_client():
+    client = "squrl.lambda_function.Squrl.client"
+
+    return patch(client, autospec=True)
+
+
+@fixture(scope="session")
+def url():
+    return "https://fake.example.com"
+
+
+@fixture(scope="session")
+def head_object_response(url):
+    return {"url": url, "key": Squrl.get_key(url)}
+
+
+@fixture(scope="session")
+def put_object_response():
+    return {}
+
+
+@fixture(scope="function")
+def event(url):
+    return {"queryStringParameters": {"url": url}}
+
+
+@fixture(scope="function")
+def context():
+    return {}
+
+
+def test_handle_unhandled_method(patch_client, event, context):
+    event["httpMethod"] = "UNHANDLED_METHOD"
+    response = handler(event, context)
+
+    assert response["statusCode"] == "400"
+
+
+def test_handle_get(patch_client, head_object_response, event, context):
+    event["httpMethod"] = "GET"
+
+    with patch_client as client:
+        client.head_object.return_value = head_object_response
+        response = handler(event, context)
+
+        assert response["statusCode"] == "200"
+        client.head_object.assert_called_once()
+
+
+def test_handle_post(patch_client, put_object_response, event, context):
+    event["httpMethod"] = "POST"
+
+    with patch_client as client:
+        client.put_object.return_value = put_object_response
+        response = handler(event, context)
+
+        assert response["statusCode"] == "200"
+        client.put_object.assert_called_once()
+
+
+def test_handle_put(patch_client, put_object_response, event, context):
+    event["httpMethod"] = "PUT"
+
+    with patch_client as client:
+        client.put_object.return_value = put_object_response
+        response = handler(event, context)
+
+        assert response["statusCode"] == "200"
+        client.put_object.assert_called_once()

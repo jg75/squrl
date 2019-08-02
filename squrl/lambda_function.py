@@ -10,6 +10,7 @@ import botocore.exceptions
 
 class Squrl:
     """Squrl makes URL's shorter."""
+    client = boto3.client("s3")
     key_length = 7
     key_retention = 7
 
@@ -25,10 +26,13 @@ class Squrl:
         retention = datetime.timedelta(days=cls.key_retention)
         return datetime.datetime.now() + retention
 
-    def __init__(self, client, bucket):
+    def __init__(self, bucket, client=None):
         """Override init."""
-        self.client = client
         self.bucket = bucket
+
+        if client:
+            self.client = client
+
         self.registry = {
             "GET": self.get,
             "POST": self.create,
@@ -89,7 +93,7 @@ def handler(event, context):
 
     response body: '{"url": <string>, "key": <string>}'
     """
-    squrl = Squrl(boto3.client("s3"), os.getenv("S3_BUCKET"))
+    squrl = Squrl(os.getenv("S3_BUCKET"))
     url = event["queryStringParameters"]["url"]
     method = event["httpMethod"]
 
