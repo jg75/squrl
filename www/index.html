@@ -1,5 +1,40 @@
+<!doctype html>
 <html>
-  <body>
-    <h1>There be dragons here...</h1>
+  <head>
+    <title>squrl - short, quick url</title>
+  </head>
+
+  <body class="container">
+    <form role="form" class="form" onsubmit="return false;">
+      <div class="form-group">
+        <label for="url">URL</label>
+        <input id="url" class="form-control form-control-lg" type="text" placeholder="SQUrl it!"></input>
+      </div>
+      <button id="submit" type="button" class="btn btn-primary">Submit</button>
+    </form>
+
+    <div id="output" class="container"></div>
+
+    <script src="axios.min.js"></script>
+    <script>
+      (function () {
+        var output = document.getElementById('output');
+
+        document.getElementById('submit').onclick = function () {
+          var url = encodeURI(document.getElementById('url').value)
+          var data = JSON.stringify({'url': url});
+
+          axios.post('/url', data)
+            .then(function (res) {
+              output.className = 'container';
+              output.innerHTML = res.data;
+            })
+            .catch(function (err) {
+              output.className = 'container text-danger';
+              output.innerHTML = err.message;
+            });
+        };
+      })();
+    </script>
   </body>
 <html>
