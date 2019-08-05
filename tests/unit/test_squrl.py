@@ -1,12 +1,11 @@
-import datetime
-import json
-from unittest.mock import patch
+from datetime import datetime
+from json import dumps
 
 import boto3
 from botocore.stub import Stubber, ANY
 from pytest import fixture
 
-from squrl import Squrl, handler
+from squrl import Squrl
 
 
 @fixture(scope="function")
@@ -53,7 +52,7 @@ def test_get_key(parameters):
 def test_get_expiration(parameters):
     expiration = Squrl.get_expiration()
 
-    assert expiration > datetime.datetime.now()
+    assert expiration > datetime.now()
 
 
 def test_key_exists(stubber, parameters):
@@ -86,7 +85,7 @@ def test_get_response_ok():
     response = "test-body"
     expected_response = {
         "statusCode": "200",
-        "body": json.dumps(response),
+        "body": dumps(response),
         "headers": {
             "Content-Type": "application/json",
         },
@@ -111,7 +110,6 @@ def test_get_response_error():
 
 
 def test_get_method_key_exists(stubber, parameters):
-    method = "GET"
     bucket = parameters["bucket"]
     url = parameters["url"]
 
@@ -120,11 +118,10 @@ def test_get_method_key_exists(stubber, parameters):
     )
     stubber.activate()
 
-    assert Squrl(bucket, client=stubber.client).registry[method](url)
+    assert Squrl(bucket, client=stubber.client).get(url)
 
 
 def test_get_method_key_does_not_exist(stubber, parameters):
-    method = "GET"
     bucket = parameters["bucket"]
     url = parameters["url"]
 
@@ -135,11 +132,10 @@ def test_get_method_key_does_not_exist(stubber, parameters):
     )
     stubber.activate()
 
-    assert not Squrl(bucket, client=stubber.client).registry[method](url)
+    assert not Squrl(bucket, client=stubber.client).get(url)
 
 
 def test_post_method(stubber, parameters):
-    method = "POST"
     bucket = parameters["bucket"]
     url = parameters["url"]
 
@@ -148,11 +144,10 @@ def test_post_method(stubber, parameters):
     )
     stubber.activate()
 
-    assert Squrl(bucket, client=stubber.client).registry[method](url)
+    assert Squrl(bucket, client=stubber.client).create(url)
 
 
-def test_put_method(stubber, parameters):
-    method = "PUT"
+def test_create_method(stubber, parameters):
     bucket = parameters["bucket"]
     url = parameters["url"]
 
@@ -161,76 +156,4 @@ def test_put_method(stubber, parameters):
     )
     stubber.activate()
 
-    assert Squrl(bucket, client=stubber.client).registry[method](url)
-
-
-@fixture(scope="function")
-def patch_client():
-    client = "squrl.lambda_function.Squrl.client"
-
-    return patch(client, autospec=True)
-
-
-@fixture(scope="session")
-def url():
-    return "https://fake.example.com"
-
-
-@fixture(scope="session")
-def head_object_response(url):
-    return {"url": url, "key": Squrl.get_key(url)}
-
-
-@fixture(scope="session")
-def put_object_response():
-    return {}
-
-
-@fixture(scope="function")
-def event(url):
-    return {"queryStringParameters": {"url": url}}
-
-
-@fixture(scope="function")
-def context():
-    return {}
-
-
-def test_handle_unhandled_method(patch_client, event, context):
-    event["httpMethod"] = "UNHANDLED_METHOD"
-    response = handler(event, context)
-
-    assert response["statusCode"] == "400"
-
-
-def test_handle_get(patch_client, head_object_response, event, context):
-    event["httpMethod"] = "GET"
-
-    with patch_client as client:
-        client.head_object.return_value = head_object_response
-        response = handler(event, context)
-
-        assert response["statusCode"] == "200"
-        client.head_object.assert_called_once()
-
-
-def test_handle_post(patch_client, put_object_response, event, context):
-    event["httpMethod"] = "POST"
-
-    with patch_client as client:
-        client.put_object.return_value = put_object_response
-        response = handler(event, context)
-
-        assert response["statusCode"] == "200"
-        client.put_object.assert_called_once()
-
-
-def test_handle_put(patch_client, put_object_response, event, context):
-    event["httpMethod"] = "PUT"
-
-    with patch_client as client:
-        client.put_object.return_value = put_object_response
-        response = handler(event, context)
-
-        assert response["statusCode"] == "200"
-        client.put_object.assert_called_once()
+    assert Squrl(bucket, client=stubber.client).create(url)

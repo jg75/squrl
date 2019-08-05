@@ -3,6 +3,7 @@ import datetime
 import hashlib
 import json
 import os
+import urllib
 
 import boto3
 import botocore.exceptions
@@ -32,12 +33,6 @@ class Squrl:
 
         if client:
             self.client = client
-
-        self.registry = {
-            "GET": self.get,
-            "POST": self.create,
-            "PUT": self.create
-        }
 
     def key_exists(self, key):
         """Return True if the specified key exists."""
@@ -94,14 +89,22 @@ def handler(event, context):
     response body: '{"url": <string>, "key": <string>}'
     """
     squrl = Squrl(os.getenv("S3_BUCKET"))
-    url = event["queryStringParameters"]["url"]
     method = event["httpMethod"]
+    registry = {
+        "GET": squrl.get,
+        "POST": squrl.create,
+        "PUT": squrl.create
+    }
 
-    if method in squrl.registry.keys():
-        key = squrl.registry[method](url)
-
-        return squrl.get_response(response={"url": url, "key": key})
-    else:
+    if method not in registry.keys():
         error = ValueError(f"Unsupported method: {method}")
 
         return squrl.get_response(error=error)
+
+    body = event["queryStringParameters"] if method == "GET" \
+        else json.loads(event["body"])
+
+    url = urllib.parse.unquote_plus(body["url"])
+    key = registry[method](url)
+
+    return squrl.get_response(response={"url": url, "key": key})
