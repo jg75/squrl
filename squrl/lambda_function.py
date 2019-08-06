@@ -1,76 +1,19 @@
 """Squrl lambda function."""
-import datetime
-import hashlib
-import json
-import os
-import urllib
+from json import dumps, loads
+from os import getenv
+from urllib.parse import unquote_plus
 
-import boto3
-import botocore.exceptions
+from squrl import Squrl
 
 
-class Squrl:
-    """Squrl makes URL's shorter."""
-    client = boto3.client("s3")
-    key_length = 7
-    key_retention = 7
-
-    @classmethod
-    def get_key(cls, url):
-        """Get a short key for the url prefixed with 'u/'."""
-        digest = hashlib.md5(url.encode()).hexdigest()
-        return f"u/{digest[:cls.key_length]}"
-
-    @classmethod
-    def get_expiration(cls):
-        """Get a key expiration datetime object."""
-        retention = datetime.timedelta(days=cls.key_retention)
-        return datetime.datetime.now() + retention
-
-    def __init__(self, bucket, client=None):
-        """Override init."""
-        self.bucket = bucket
-
-        if client:
-            self.client = client
-
-    def key_exists(self, key):
-        """Return True if the specified key exists."""
-        try:
-            self.client.head_object(Bucket=self.bucket, Key=key)
-        except botocore.exceptions.ClientError as e:
-            if e.response["Error"]["Code"] == "404":
-                return False
-            else:
-                raise e
-
-        return True
-
-    def get(self, url, **kwargs):
-        """Return a key if one exists."""
-        key = self.get_key(url)
-
-        return key if self.key_exists(key) else ""
-
-    def create(self, url, **kwargs):
-        """Create the short key object with an expiration and redirect."""
-        key = self.get_key(url)
-
-        self.client.put_object(
-            Bucket=self.bucket,
-            Key=key,
-            WebsiteRedirectLocation=url,
-            Expires=self.get_expiration(),
-            ContentType="text/plain"
-        )
-
-        return key
+class ApiHandler:
+    """AWS API Lambda Handler."""
 
     @staticmethod
     def get_response(response="OK", error=None):
         """Get a proper, formatted response."""
         statusCode = "400" if error else "200"
-        body = str(error) if error else json.dumps(response)
+        body = str(error) if error else dumps(response)
 
         return {
             "statusCode": statusCode,
@@ -80,31 +23,47 @@ class Squrl:
             },
         }
 
+    def __init__(self, squrl=None, registry=None, handler=None):
+        """Override init."""
+        self.squrl = squrl if squrl else Squrl(getenv("S3_BUCKET"))
 
-def handler(event, context):
-    """
-    Handle the lambda function event and return a response with
-    a body containing the url and the key, if it exists.
+        self.registry = registry if registry else {
+            "GET": self.squrl.get,
+            "POST": self.squrl.create,
+            "PUT": self.squrl.create
+        }
 
-    response body: '{"url": <string>, "key": <string>}'
-    """
-    squrl = Squrl(os.getenv("S3_BUCKET"))
-    method = event["httpMethod"]
-    registry = {
-        "GET": squrl.get,
-        "POST": squrl.create,
-        "PUT": squrl.create
-    }
+        if handler:
+            self.handler = handler
 
-    if method not in registry.keys():
-        error = ValueError(f"Unsupported method: {method}")
+    def __call__(self, event, context):
+        """Override call."""
+        return self.handler(event, context)
 
-        return squrl.get_response(error=error)
+    def parse_event(self, event):
+        """
+        Get the method and body from the event.
+        Raise an exception if the method isn't supported.
+        """
+        method = event["httpMethod"]
 
-    body = event["queryStringParameters"] if method == "GET" \
-        else json.loads(event["body"])
+        if method not in self.registry.keys():
+            raise ValueError(f"Unsupported method: {method}")
 
-    url = urllib.parse.unquote_plus(body["url"])
-    key = registry[method](url)
+        body = loads(event["queryStringParameters"]) if method == "GET" \
+            else loads(event["body"])
 
-    return squrl.get_response(response={"url": url, "key": key})
+        return method, body
+
+    def handler(self, event, context):
+        """
+        Handle the lambda function event and return a response with
+        a body containing the url and the key, if it exists.
+
+        response body: '{"url": <string>, "key": <string>}'
+        """
+        method, body = self.parse_event(event)
+        url = unquote_plus(body["url"])
+        key = self.registry[method](url)
+
+        return self.get_response(response={"url": url, "key": key})
