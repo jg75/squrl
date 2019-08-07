@@ -9,6 +9,7 @@ class ApiHandler:
     def parse_event(event):
         """
         Get the method and body from the event.
+
         Raise an exception if the method isn't supported.
         """
         method = event["httpMethod"]

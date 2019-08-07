@@ -1,3 +1,4 @@
+"""Lambda Function Handler."""
 from os import getenv
 from urllib.parse import unquote_plus
 
@@ -6,6 +7,8 @@ from squrl import ApiHandler, Squrl
 
 def handler(event, context, squrl=None, registry=None):
     """
+    Handler.
+
     Handle the lambda function event and return a response with
     a body containing the url and the key, if it exists.
 

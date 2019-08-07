@@ -1,3 +1,4 @@
+"""Squrl makes URL's shorter."""
 from datetime import datetime, timedelta
 from hashlib import md5
 
@@ -6,7 +7,12 @@ import botocore.exceptions
 
 
 class Squrl:
-    """Squrl makes URL's shorter."""
+    """
+    Squrl makes URL's shorter.
+
+    New keys have a default length of 7 characters and
+    a retention period of 7 days
+    """
 
     key_length = 7
     key_retention = 7
