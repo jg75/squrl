@@ -7,6 +7,7 @@ import botocore.exceptions
 
 class Squrl:
     """Squrl makes URL's shorter."""
+
     key_length = 7
     key_retention = 7
 
@@ -54,7 +55,7 @@ class Squrl:
             Key=key,
             WebsiteRedirectLocation=url,
             Expires=self.get_expiration(),
-            ContentType="text/plain"
+            ContentType="text/plain",
         )
 
         return key

@@ -13,8 +13,11 @@ class ApiHandler:
         """
         method = event["httpMethod"]
 
-        body = loads(event["queryStringParameters"]) if method == "GET" \
+        body = (
+            loads(event["queryStringParameters"])
+            if method == "GET"
             else loads(event["body"])
+        )
 
         return method, body
 
@@ -27,9 +30,7 @@ class ApiHandler:
         return {
             "statusCode": statusCode,
             "body": body,
-            "headers": {
-                "Content-Type": "application/json",
-            },
+            "headers": {"Content-Type": "application/json"},
         }
 
     def __init__(self, handler):
