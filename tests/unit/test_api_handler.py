@@ -20,8 +20,12 @@ def context():
     return {}
 
 
-def test_get_response_ok():
-    response = "test-body"
+@pytest.mark.parametrize("response", [
+    ("test-body"),
+    (""),
+    (None)
+])
+def test_get_response_ok(response):
     expected_response = {
         "statusCode": "200",
         "body": dumps(response),
@@ -52,7 +56,9 @@ def test_get_response_error():
     ("GET", "test-get"),
     ("POST", "test-post"),
     ("PUT", "test-put"),
-    ("OTHER", "test-other")
+    ("OTHER", "test-other"),
+    ("", ""),
+    (None, None),
 ])
 def test_parse_event(event, method, url):
     event["httpMethod"] = method
