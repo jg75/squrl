@@ -1,8 +1,23 @@
 from json import dumps
+from unittest.mock import MagicMock
 
 import pytest
 
 from squrl import ApiHandler
+
+
+@pytest.fixture(scope="function")
+def event():
+    return {
+        "httpMethod": "UNKNOWN",
+        "queryStringParameters": "{}",
+        "body": "{}"
+    }
+
+
+@pytest.fixture(scope="function")
+def context():
+    return {}
 
 
 def test_get_response_ok():
@@ -33,25 +48,31 @@ def test_get_response_error():
     assert expected_response == actual_response
 
 
-@pytest.mark.parametrize("method, url, should_pass", [
-    ("GET", "test-get", True),
-    ("POST", "test-post", True),
-    ("PUT", "test-put", True),
-    ("UNHANDLED", "test-error", False)
+@pytest.mark.parametrize("method, url", [
+    ("GET", "test-get"),
+    ("POST", "test-post"),
+    ("PUT", "test-put"),
+    ("OTHER", "test-other")
 ])
-def test_parse_event(method, url, should_pass):
-    event = {"httpMethod": method}
+def test_parse_event(event, method, url):
+    event["httpMethod"] = method
 
     if method == "GET":
         event["queryStringParameters"] = dumps({"url": url})
     else:
         event["body"] = dumps({"url": url})
 
-    if should_pass:
-        method, body = ApiHandler().parse_event(event)
+    method, body = ApiHandler.parse_event(event)
 
-        assert method == method
-        assert body["url"] == url
-    else:
-        with pytest.raises(ValueError):
-            method, body = ApiHandler().parse_event(event)
+    assert method == method
+    assert body["url"] == url
+
+
+def test_call_handler(event, context):
+    key = "response"
+    mock_handler = MagicMock(return_value=key)
+    api_handler = ApiHandler(mock_handler)
+    response = api_handler(event, context)
+
+    mock_handler.assert_called_once_with(event, context)
+    assert response == key
