@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import boto3
+from botocore.exceptions import ClientError
 from botocore.stub import Stubber, ANY
 import pytest
 
@@ -78,6 +79,21 @@ def test_key_does_not_exist(stubber, parameters):
     stubber.activate()
 
     assert not Squrl(bucket, client=stubber.client).key_exists(key)
+
+
+def test_key_error(stubber, parameters):
+    bucket = parameters["bucket"]
+    key = parameters["key"]
+
+    stubber.add_client_error(
+        "head_object",
+        expected_params=parameters["head_object"],
+        service_error_code="500"
+    )
+    stubber.activate()
+
+    with pytest.raises(ClientError):
+        Squrl(bucket, client=stubber.client).key_exists(key)
 
 
 def test_get_method_key_exists(stubber, parameters):
