@@ -8,11 +8,7 @@ from squrl import handler
 
 @pytest.fixture(scope="function")
 def event():
-    return {
-        "httpMethod": "UNKNOWN",
-        "queryStringParameters": "{}",
-        "body": "{}"
-    }
+    return {}
 
 
 @pytest.fixture(scope="function")
@@ -23,7 +19,8 @@ def context():
 @pytest.mark.parametrize("method, url, key", [
     ("GET", "https://get.example.com", "u/fake123"),
     ("POST", "https://post.example.com", "u/fake456"),
-    ("POST", "https://put.example.com", "u/fake789")
+    ("PUT", "https://put.example.com", "u/fake789"),
+    ("UNKNOWN", "https://unknown.example.com", "")
 ])
 def test_handler(event, context, method, url, key):
     event["httpMethod"] = method
@@ -34,14 +31,18 @@ def test_handler(event, context, method, url, key):
         event["body"] = dumps({"url": url})
 
     mock_method = MagicMock(return_value=key)
-    registry = {method: mock_method}
+    registry = {
+        "GET": mock_method,
+        "POST": mock_method,
+        "PUT": mock_method
+    }
+
     response = handler(event, context, registry=registry)
 
-    mock_method.assert_called_once_with(url)
-    assert response["statusCode"] == "200"
-    assert isinstance(response["body"], str)
-
-
-def test_handler_error(event, context):
-    with pytest.raises(ValueError):
-        handler(event, context)
+    if method in registry.keys():
+        mock_method.assert_called_once_with(url)
+        assert response["statusCode"] == "200"
+        assert isinstance(response["body"], str)
+    else:
+        mock_method.assert_not_called()
+        assert response["statusCode"] == "400"

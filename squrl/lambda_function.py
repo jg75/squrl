@@ -20,9 +20,12 @@ def handler(event, context, squrl=None, registry=None):
     method, body = ApiHandler.parse_event(event)
 
     if method not in registry.keys():
-        raise ValueError(f"Unsupported method: {method}")
+        error = ValueError(f"Unsupported method: {method}")
 
-    url = unquote_plus(body["url"])
-    key = registry[method](url)
+        return ApiHandler.get_response(error=error)
 
-    return ApiHandler.get_response(response={"url": url, "key": key})
+    else:
+        url = unquote_plus(body["url"])
+        key = registry[method](url)
+
+        return ApiHandler.get_response(response={"url": url, "key": key})
