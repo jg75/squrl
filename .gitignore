@@ -1,5 +1,7 @@
 *.pyc
 __pycache__
 .pytest_cache
+.coverage
+.tox
 .aws-sam
 .vscode

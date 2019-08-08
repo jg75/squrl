@@ -1,7 +1,11 @@
+version: 0.2
+
 phases:
   install:
+    runtime-versions:
+      python: 3.7
     commands:
-      - pip install pycodestyle pydocstyle pytest
+      - pip install aws-sam-cli tox
 
   pre_build:
     commands:
@@ -10,9 +14,7 @@ phases:
 
   build:
     commands:
-      - pycodestyle squrl
-      - pydocstyle squrl
-      - pytest
+      - tox
 
   post_build:
     commands:

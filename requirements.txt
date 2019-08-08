@@ -1,0 +1,5 @@
+black==19.3b0
+pycodestyle==2.5.0
+pydocstyle==4.0.0
+pytest==5.0.1
+pytest-cov==2.7.1
