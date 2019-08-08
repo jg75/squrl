@@ -4,4 +4,5 @@ __pycache__
 .coverage
 .tox
 .aws-sam
+sam-packaged.yml
 .vscode

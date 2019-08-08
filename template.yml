@@ -22,7 +22,7 @@ Resources:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     Properties:
       CloudFrontOriginAccessIdentityConfig:
-        Comment: !Sub CloudFront origin access identity: ${S3BucketParameter}
+        Comment: !Sub CloudFront origin access identity for ${S3BucketParameter}
 
   SqurlS3Bucket:
     Type: AWS::S3::Bucket
