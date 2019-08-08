@@ -5,7 +5,7 @@ from urllib.parse import unquote_plus
 from squrl import ApiHandler, Squrl
 
 
-def handler(event, context, squrl=None, registry=None):
+def handler(event, context, **kwargs):
     """
     Handler.
 
@@ -14,11 +14,10 @@ def handler(event, context, squrl=None, registry=None):
 
     response body: '{"url": <string>, "key": <string>}'
     """
-    squrl = squrl if squrl else Squrl(getenv("S3_BUCKET"))
-    registry = (
-        registry
-        if registry
-        else {"GET": squrl.get, "POST": squrl.create, "PUT": squrl.create}
+    squrlifier = kwargs.get("squrl", Squrl(getenv("S3_BUCKET")))
+    registry = kwargs.get(
+        "registry",
+        {"GET": squrlifier.get, "POST": squrlifier.create, "PUT": squrlifier.create},
     )
     method, body = ApiHandler.parse_event(event)
 

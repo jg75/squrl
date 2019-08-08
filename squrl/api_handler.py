@@ -38,6 +38,6 @@ class ApiHandler:
         """Override init."""
         self.handler = handler
 
-    def __call__(self, event, context):
+    def __call__(self, event, context, **kwargs):
         """Override call."""
-        return self.handler(event, context)
+        return self.handler(event, context, **kwargs)

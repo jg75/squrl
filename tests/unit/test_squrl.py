@@ -1,8 +1,8 @@
 from datetime import datetime
 
-import boto3
 from botocore.exceptions import ClientError
 from botocore.stub import Stubber, ANY
+from boto3 import client
 import pytest
 
 from squrl import Squrl
@@ -10,8 +10,7 @@ from squrl import Squrl
 
 @pytest.fixture(scope="function")
 def stubber(request):
-    client = boto3.client("s3")
-    stub = Stubber(client)
+    stub = Stubber(client("s3"))
 
     request.addfinalizer(stub.assert_no_pending_responses)
 
