@@ -46,7 +46,15 @@ def post_event(url):
 @pytest.fixture(scope="function")
 def put_event(url):
     return {
-        "httpMethod": "POST",
+        "httpMethod": "PUT",
+        "body": dumps({"url": url})
+    }
+
+
+@pytest.fixture(scope="function")
+def unsupported_event(url):
+    return {
+        "httpMethod": "UNSUPPORTED",
         "body": dumps({"url": url})
     }
 
@@ -101,3 +109,10 @@ def test_handler_put(put_event, context, squrl_create):
     response = api_handler(put_event, context, squrl=squrl_create)
 
     assert response["statusCode"] == "200"
+
+
+def test_handler_error(unsupported_event, context):
+    api_handler = ApiHandler(handler)
+    response = api_handler(unsupported_event, context)
+
+    assert response["statusCode"] == "400"
