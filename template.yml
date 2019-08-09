@@ -56,12 +56,12 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       AutoPublishAlias: !Ref ApiVersionParameter
-      Handler: lambda_function.handler
+      Handler: squrl.handler
       Runtime: python3.7
       CodeUri: squrl
       Policies:
        - S3CrudPolicy:
-            BucketName: !Ref S3BucketParameter
+          BucketName: !Ref S3BucketParameter
       Environment:
         Variables:
           S3_BUCKET: !Ref S3BucketParameter
@@ -79,7 +79,7 @@ Resources:
             Method: post
             Path: /url
 
-  SqurlCloudFront:
+  SqurlCloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
@@ -111,6 +111,10 @@ Outputs:
     Value: !GetAtt SqurlApiLambda.Arn
 
   SqurlS3Bucket:
+    Description: Squrl S3 Bucket
+    Value: !Ref S3BucketParameter
+
+  SqurlS3BucketDomainName:
     Description: Squrl S3 Bucket Url
     Value: !GetAtt SqurlS3Bucket.DomainName
 

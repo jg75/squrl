@@ -27,17 +27,14 @@ def parameters():
         "bucket": bucket,
         "url": url,
         "key": key,
-        "head_object": {
-            "Bucket": bucket,
-            "Key": key
-        },
+        "head_object": {"Bucket": bucket, "Key": key},
         "put_object": {
             "Bucket": bucket,
             "Key": key,
             "WebsiteRedirectLocation": url,
             "Expires": ANY,
-            "ContentType": ANY
-        }
+            "ContentType": ANY,
+        },
     }
 
 
@@ -58,9 +55,7 @@ def test_key_exists(stubber, parameters):
     bucket = parameters["bucket"]
     key = parameters["key"]
 
-    stubber.add_response(
-        "head_object", {}, expected_params=parameters["head_object"]
-    )
+    stubber.add_response("head_object", {}, expected_params=parameters["head_object"])
     stubber.activate()
 
     assert Squrl(bucket, client=stubber.client).key_exists(key)
@@ -73,7 +68,7 @@ def test_key_does_not_exist(stubber, parameters):
     stubber.add_client_error(
         "head_object",
         expected_params=parameters["head_object"],
-        service_error_code="404"
+        service_error_code="404",
     )
     stubber.activate()
 
@@ -87,7 +82,7 @@ def test_key_error(stubber, parameters):
     stubber.add_client_error(
         "head_object",
         expected_params=parameters["head_object"],
-        service_error_code="500"
+        service_error_code="500",
     )
     stubber.activate()
 
@@ -99,9 +94,7 @@ def test_get_method_key_exists(stubber, parameters):
     bucket = parameters["bucket"]
     url = parameters["url"]
 
-    stubber.add_response(
-        "head_object", {}, expected_params=parameters["head_object"]
-    )
+    stubber.add_response("head_object", {}, expected_params=parameters["head_object"])
     stubber.activate()
 
     assert Squrl(bucket, client=stubber.client).get(url)
@@ -114,7 +107,7 @@ def test_get_method_key_does_not_exist(stubber, parameters):
     stubber.add_client_error(
         "head_object",
         expected_params=parameters["head_object"],
-        service_error_code="404"
+        service_error_code="404",
     )
     stubber.activate()
 
@@ -125,9 +118,7 @@ def test_create_method(stubber, parameters):
     bucket = parameters["bucket"]
     url = parameters["url"]
 
-    stubber.add_response(
-        "put_object", {}, expected_params=parameters["put_object"]
-    )
+    stubber.add_response("put_object", {}, expected_params=parameters["put_object"])
     stubber.activate()
 
     assert Squrl(bucket, client=stubber.client).create(url)
