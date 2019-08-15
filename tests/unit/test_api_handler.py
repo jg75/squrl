@@ -66,10 +66,10 @@ def test_parse_event(event, method, url):
 
 
 def test_call_handler(event, context):
-    key = "response"
-    mock_handler = MagicMock(return_value=key)
+    expected_response = "response"
+    mock_handler = MagicMock(return_value=expected_response)
     api_handler = ApiHandler(mock_handler)
     response = api_handler(event, context)
 
     mock_handler.assert_called_once_with(event, context)
-    assert response == key
+    assert response == expected_response
