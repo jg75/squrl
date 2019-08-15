@@ -92,13 +92,6 @@ def test_handler_post(post_event, context, squrl_create):
     assert response["statusCode"] == "200"
 
 
-def test_handler_put(put_event, context, squrl_create):
-    api_handler = ApiHandler(handler)
-    response = api_handler(put_event, context, squrl=squrl_create)
-
-    assert response["statusCode"] == "400"
-
-
 def test_handler_error(unsupported_event, context):
     api_handler = ApiHandler(handler)
     response = api_handler(unsupported_event, context)
