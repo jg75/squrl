@@ -12,7 +12,11 @@ from squrl import ApiHandler, Squrl, handler
 def stubber(request):
     stub = Stubber(client("s3"))
 
-    request.addfinalizer(stub.assert_no_pending_responses)
+    def finalizer():
+        stub.assert_no_pending_responses()
+        stub.deactivate()
+
+    request.addfinalizer(finalizer)
 
     return stub
 
