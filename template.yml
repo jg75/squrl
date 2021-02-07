@@ -18,6 +18,12 @@ Parameters:
     Default: www.squrl.com
 
 Resources:
+  SqurlCloudFrontOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub CloudFront origin access identity for ${S3BucketParameter}
+
   SqurlS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -28,6 +34,19 @@ Resources:
         IndexDocument: index.html
         ErrorDocument: error.html
 
+  SqurlS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SqurlS3Bucket
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:GetObject
+            Effect: Allow
+            Resource: !Sub arn:aws:s3:::${SqurlS3Bucket}/*
+            Principal:
+              CanonicalUser: !GetAtt SqurlCloudFrontOriginAccessIdentity.S3CanonicalUserId
+
   SqurlApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -37,12 +56,12 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       AutoPublishAlias: !Ref ApiVersionParameter
-      Handler: lambda_function.handler
+      Handler: squrl.handler
       Runtime: python3.7
       CodeUri: squrl
       Policies:
        - S3CrudPolicy:
-            BucketName: !Ref S3BucketParameter
+          BucketName: !Ref S3BucketParameter
       Environment:
         Variables:
           S3_BUCKET: !Ref S3BucketParameter
@@ -59,12 +78,28 @@ Resources:
             RestApiId: !Ref SqurlApi
             Method: post
             Path: /url
-        PutUrl:
-          Type: Api
-          Properties:
-            RestApiId: !Ref SqurlApi
-            Method: put
-            Path: /url
+
+  SqurlCloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        DefaultCacheBehavior:
+          ForwardedValues:
+            QueryString: true
+          TargetOriginId: !Ref S3BucketParameter
+          ViewerProtocolPolicy: redirect-to-https
+        DefaultRootObject: index.html
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 404
+            ResponsePagePath: /error.html
+        Enabled: true
+        HttpVersion: http2
+        Origins:
+          - DomainName: !GetAtt SqurlS3Bucket.DomainName
+            Id: !Ref S3BucketParameter
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${SqurlCloudFrontOriginAccessIdentity}
 
 Outputs:
   SqurlApi:
@@ -75,10 +110,18 @@ Outputs:
     Description: Squrl Lambda Function Arn
     Value: !GetAtt SqurlApiLambda.Arn
 
-  SqurlApiLambdaIamRole:
-    Description: Squrl Lambda Execution Role Arn
-    Value: !GetAtt SqurlApiLambdaRole.Arn
-
   SqurlS3Bucket:
+    Description: Squrl S3 Bucket
+    Value: !Ref S3BucketParameter
+
+  SqurlS3BucketDomainName:
     Description: Squrl S3 Bucket Url
     Value: !GetAtt SqurlS3Bucket.DomainName
+
+  SqurlCloudFrontDistribution:
+    Description: Squrl CloudFront Distribtion Id
+    Value: !Ref SqurlCloudFrontDistribution
+
+  SqurlCloudFrontDomainName:
+    Description: Squrl CloudFront Distribtion Domain Name
+    Value: !GetAtt SqurlCloudFrontDistribution.DomainName

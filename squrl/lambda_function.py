@@ -16,8 +16,7 @@ def handler(event, context, **kwargs):
     """
     squrlifier = kwargs.get("squrl", Squrl(getenv("S3_BUCKET")))
     registry = kwargs.get(
-        "registry",
-        {"GET": squrlifier.get, "POST": squrlifier.create, "PUT": squrlifier.create},
+        "registry", {"GET": squrlifier.get, "POST": squrlifier.create}
     )
     method, body = ApiHandler.parse_event(event)
 

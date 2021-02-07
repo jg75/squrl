@@ -8,11 +8,7 @@ from squrl import ApiHandler
 
 @pytest.fixture(scope="function")
 def event():
-    return {
-        "httpMethod": "UNKNOWN",
-        "queryStringParameters": "{}",
-        "body": "{}"
-    }
+    return {"httpMethod": "UNKNOWN", "queryStringParameters": "{}", "body": "{}"}
 
 
 @pytest.fixture(scope="function")
@@ -20,18 +16,12 @@ def context():
     return {}
 
 
-@pytest.mark.parametrize("response", [
-    ("test-body"),
-    (""),
-    (None)
-])
+@pytest.mark.parametrize("response", [("test-body"), (""), (None)])
 def test_get_response_ok(response):
     expected_response = {
         "statusCode": "200",
         "body": dumps(response),
-        "headers": {
-            "Content-Type": "application/json",
-        },
+        "headers": {"Content-Type": "application/json"},
     }
     actual_response = ApiHandler.get_response(response=response)
 
@@ -43,23 +33,24 @@ def test_get_response_error():
     expected_response = {
         "statusCode": "400",
         "body": str(error),
-        "headers": {
-            "Content-Type": "application/json",
-        },
+        "headers": {"Content-Type": "application/json"},
     }
     actual_response = ApiHandler.get_response(error=error)
 
     assert expected_response == actual_response
 
 
-@pytest.mark.parametrize("method, url", [
-    ("GET", "test-get"),
-    ("POST", "test-post"),
-    ("PUT", "test-put"),
-    ("OTHER", "test-other"),
-    ("", ""),
-    (None, None),
-])
+@pytest.mark.parametrize(
+    "method, url",
+    [
+        ("GET", "test-get"),
+        ("POST", "test-post"),
+        ("PUT", "test-put"),
+        ("OTHER", "test-other"),
+        ("", ""),
+        (None, None),
+    ],
+)
 def test_parse_event(event, method, url):
     event["httpMethod"] = method
 
@@ -75,10 +66,10 @@ def test_parse_event(event, method, url):
 
 
 def test_call_handler(event, context):
-    key = "response"
-    mock_handler = MagicMock(return_value=key)
+    expected_response = "response"
+    mock_handler = MagicMock(return_value=expected_response)
     api_handler = ApiHandler(mock_handler)
     response = api_handler(event, context)
 
     mock_handler.assert_called_once_with(event, context)
-    assert response == key
+    assert response == expected_response

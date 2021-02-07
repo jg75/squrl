@@ -20,31 +20,26 @@ def context():
 def handlers():
     key = "u/fake123"
     mock_method = MagicMock(return_value=key)
-    registry = {
-        "GET": mock_method,
-        "POST": mock_method,
-        "PUT": mock_method
-    }
+    registry = {"GET": mock_method, "POST": mock_method, "PUT": mock_method}
 
-    return {
-        "key": key,
-        "handler": mock_method,
-        "registry": registry
-    }
+    return {"key": key, "handler": mock_method, "registry": registry}
 
 
-@pytest.mark.parametrize("method, url, key", [
-    ("GET", "https://get.example.com", "u/fake123"),
-    ("POST", "https://post.example.com", "u/fake456"),
-    ("PUT", "https://put.example.com", "u/fake789"),
-    ("DELETE", "https://delete.example.com", "u/fake789"),
-    ("OPTIONS", "https://options.example.com", "u/fake789"),
-    ("HEAD", "https://head.example.com", "u/fake789"),
-    ("ANY", "https://head.example.com", "u/fake789"),
-    ("UNKNOWN", "https://unknown.example.com", ""),
-    ("", "", ""),
-    (None, None, None),
-])
+@pytest.mark.parametrize(
+    "method, url, key",
+    [
+        ("GET", "https://get.example.com", "u/fake123"),
+        ("POST", "https://post.example.com", "u/fake456"),
+        ("PUT", "https://put.example.com", "u/fake789"),
+        ("DELETE", "https://delete.example.com", "u/fake789"),
+        ("OPTIONS", "https://options.example.com", "u/fake789"),
+        ("HEAD", "https://head.example.com", "u/fake789"),
+        ("ANY", "https://head.example.com", "u/fake789"),
+        ("UNKNOWN", "https://unknown.example.com", ""),
+        ("", "", ""),
+        (None, None, None),
+    ],
+)
 def test_handler(event, context, handlers, method, url, key):
     event["httpMethod"] = method
 
